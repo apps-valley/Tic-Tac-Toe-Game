@@ -16,28 +16,32 @@ class Board extends React.Component {
     return (
       <Square 
         value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
+        onClick={(e) => this.props.onClick(i, e)}
       />
     );
+  }
+  createBoard = () => {
+    let board = []
+
+    for (let i = 0; i < 3; i++) {
+      let boardRow = []
+      for (var j = 0; j < 3; j++) {
+        if (i < 1) {
+          boardRow.push(<span row={i} col={j} key={j}>{this.renderSquare(j)}</span>)
+        } else {
+          boardRow.push(<span row={i} col={j} key={j}>{this.renderSquare(j + 3 * i)}</span>)
+        }
+      }
+      board.push(
+        <div className="board-row" key={i}>{boardRow}</div>
+      );
+    }
+    return board;
   }
   render() {
     return (
       <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+        {this.createBoard()}
       </div>
     );
   }
@@ -48,8 +52,11 @@ class Game extends React.Component {
     super(props);
     this.state = {
       history: [{
-        squares: Array(9).fill(null),
+        squares: Array(9).fill(null)
       }],
+      movesDetails: Array(9).fill([
+        [null, null]
+      ]),      
       stepNumber: 0,
       xIsNext: true,
     };
@@ -58,14 +65,21 @@ class Game extends React.Component {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
+    const movesDetails = this.state.movesDetails;
 
     const moves = history.map((step, move) => {
+
       const desc = move ?
         'Go to move #' + move :
         'Go to game start';
       return (
         <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+          <button onClick={() => this.jumpTo(move)}>
+            {desc}
+          </button>
+          <div className="move-details">
+            row & column: {movesDetails[move]}
+          </div>
         </li>
       );
     });
@@ -78,16 +92,27 @@ class Game extends React.Component {
     }
 
     return (
-      <div className="game">
-        <div className="game-board">
-          <Board
-            squares={current.squares}
-            onClick={(i) => this.handleClick(i)}
-          />
+      <div>
+        <div className="heading">
+          <h1>TIC TAC TOE</h1>
+          <p>powered by React</p>
         </div>
-        <div className="game-info">
-          <div>{status}</div>
-          <ol>{moves}</ol>
+        <div className="game">
+          <div className="game-status">
+            <strong>{status}</strong>
+          </div>
+          <div className="game-board">
+            <Board
+              squares={current.squares}
+              onClick={(i, e) => this.handleClick(i, this.state.stepNumber, e)}
+            />
+          </div>
+          <div className="game-info">
+            <h4>Game map</h4>
+            <ul className="game-details">
+              {moves}
+            </ul>
+          </div>
         </div>
       </div>
     );
@@ -98,18 +123,26 @@ class Game extends React.Component {
       xIsNext: (step % 2) === 0,
     });
   }
-  handleClick(i) {
+  handleClick(i, stepNumber, e) {
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
     const current = history[history.length - 1];
     const squares = current.squares.slice();
+    const movesDetails = this.state.movesDetails.slice();
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
     squares[i] = this.state.xIsNext ? 'X' : 'O';
+
+    movesDetails.splice(stepNumber + 1, 1, [
+      e.target.parentNode.getAttribute('row'),
+      e.target.parentNode.getAttribute('col')
+    ]);
+
     this.setState({
       history: history.concat([{
-        squares: squares,
+        squares: squares
       }]),
+      movesDetails: movesDetails,
       stepNumber: history.length,
       xIsNext: !this.state.xIsNext,
     });
